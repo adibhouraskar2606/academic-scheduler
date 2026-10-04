@@ -10,6 +10,8 @@ builder.Services.AddDbContext<AcademicSchedulerDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<StudentService>();
+builder.Services.AddScoped<CourseService>();
+builder.Services.AddScoped<EnrollmentService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

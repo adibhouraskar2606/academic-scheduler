@@ -1,0 +1,211 @@
+@page "/courses"
+@rendermode InteractiveServer
+@using AcademicScheduler.Models
+@using AcademicScheduler.Services
+@inject CourseService CourseService
+
+<PageTitle>Course Catalog</PageTitle>
+
+<h1>Course Catalog</h1>
+
+<p class="text-muted">
+    Browse and filter courses available for the upcoming semester.
+</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <label class="form-label">Search</label>
+        <input type="text"
+               class="form-control"
+               placeholder="Course number or name..."
+               @bind="searchTerm"
+               @bind:event="oninput" />
+    </div>
+
+    <div class="col-12 col-md-4">
+        <label class="form-label">Department</label>
+        <select class="form-select" @bind="selectedDepartment">
+            <option value="">All departments</option>
+
+            @foreach (var department in Departments)
+            {
+                <option value="@department">@department</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <label class="form-label">Instructor</label>
+        <select class="form-select" @bind="selectedInstructor">
+            <option value="">All instructors</option>
+
+            @foreach (var instructor in Instructors)
+            {
+                <option value="@instructor">@instructor</option>
+            }
+        </select>
+    </div>
+</div>
+
+@if (courses is null)
+{
+    <p>Loading courses...</p>
+}
+else
+{
+    var filteredCourses = FilteredCourses.ToList();
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <strong>@filteredCourses.Count course(s)</strong>
+
+        @if (HasActiveFilters)
+        {
+            <button class="btn btn-sm btn-outline-secondary"
+                    @onclick="ClearFilters">
+                Clear Filters
+            </button>
+        }
+    </div>
+
+    @if (filteredCourses.Count == 0)
+    {
+        <div class="alert alert-info">
+            No courses match the selected filters.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var course in filteredCourses)
+            {
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="card-title mb-1">
+                                        @course.CourseNumber
+                                    </h5>
+
+                                    <h6 class="card-subtitle text-muted">
+                                        @course.CourseName
+                                    </h6>
+                                </div>
+
+                                <span class="badge text-bg-primary">
+                                    @course.Credits credits
+                                </span>
+                            </div>
+
+                            <p class="mt-3 mb-3">
+                                @course.CourseDescription
+                            </p>
+
+                            <div class="mb-2">
+                                <strong>Department:</strong>
+                                @course.Department
+                            </div>
+
+                            <div class="mb-2">
+                                <strong>Instructor:</strong>
+                                @course.Instructor
+                            </div>
+
+                            <div>
+                                <strong>Prerequisite:</strong>
+
+                                @if (string.IsNullOrWhiteSpace(
+                                    course.PrerequisiteCourseNumber))
+                                {
+                                    <span class="text-success">None</span>
+                                }
+                                else
+                                {
+                                    <span>
+                                        @course.PrerequisiteCourseNumber
+                                    </span>
+                                }
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<Course>? courses;
+
+    private string searchTerm = string.Empty;
+    private string selectedDepartment = string.Empty;
+    private string selectedInstructor = string.Empty;
+
+    private IEnumerable<string> Departments =>
+        courses?
+            .Select(course => course.Department)
+            .Distinct()
+            .OrderBy(department => department)
+        ?? Enumerable.Empty<string>();
+
+    private IEnumerable<string> Instructors =>
+        courses?
+            .Select(course => course.Instructor)
+            .Distinct()
+            .OrderBy(instructor => instructor)
+        ?? Enumerable.Empty<string>();
+
+    private IEnumerable<Course> FilteredCourses =>
+        courses?.Where(course =>
+            MatchesSearch(course) &&
+            MatchesDepartment(course) &&
+            MatchesInstructor(course))
+        ?? Enumerable.Empty<Course>();
+
+    private bool HasActiveFilters =>
+        !string.IsNullOrWhiteSpace(searchTerm) ||
+        !string.IsNullOrWhiteSpace(selectedDepartment) ||
+        !string.IsNullOrWhiteSpace(selectedInstructor);
+
+    protected override async Task OnInitializedAsync()
+    {
+        courses = await CourseService.GetCoursesAsync();
+    }
+
+    private bool MatchesSearch(Course course)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return true;
+        }
+
+        return course.CourseNumber.Contains(
+                   searchTerm,
+                   StringComparison.OrdinalIgnoreCase)
+               ||
+               course.CourseName.Contains(
+                   searchTerm,
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool MatchesDepartment(Course course)
+    {
+        return string.IsNullOrWhiteSpace(selectedDepartment) ||
+               course.Department == selectedDepartment;
+    }
+
+    private bool MatchesInstructor(Course course)
+    {
+        return string.IsNullOrWhiteSpace(selectedInstructor) ||
+               course.Instructor == selectedInstructor;
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = string.Empty;
+        selectedDepartment = string.Empty;
+        selectedInstructor = string.Empty;
+    }
+}
