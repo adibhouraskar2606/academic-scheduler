@@ -148,93 +148,160 @@ Remove
 
     <h2 class="h4 mb-3">Courses for Upcoming Semester</h2>
 
-    <div class="row g-4">
-        @foreach (var course in courses)
-        {
-            var eligibility = EnrollmentService
-                .CheckEligibility(student, course);
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+            <label class="form-label">Search Courses</label>
 
-            <div class="col-12 col-lg-6">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
+            <input type="text" class="form-control" placeholder="Course number or name..." @bind="searchTerm"
+                   @bind:event="oninput" />
+        </div>
 
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h5 class="mb-1">@course.CourseNumber</h5>
-                                <div class="text-muted">
-                                    @course.CourseName
+        <div class="col-12 col-md-6">
+            <label class="form-label">Department</label>
+
+            <select class="form-select" @bind="selectedDepartment">
+
+                <option value="">All departments</option>
+
+                @foreach (var department in Departments)
+                {
+                    <option value="@department">
+                        @department
+                    </option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="btn-group mb-3" role="group" aria-label="Course eligibility filter">
+
+        <button class="@GetEligibilityButtonClass("all")" @onclick='() => eligibilityFilter = "all"'>
+            All
+        </button>
+
+        <button class="@GetEligibilityButtonClass("eligible")" @onclick='() => eligibilityFilter = "eligible"'>
+            Eligible
+        </button>
+
+        <button class="@GetEligibilityButtonClass("ineligible")" @onclick='() => eligibilityFilter = "ineligible"'>
+            Ineligible
+        </button>
+
+        @{
+            var filteredCourses = FilteredCourses.ToList();
+        }
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">
+                Showing @filteredCourses.Count of @courses.Count courses
+            </span>
+
+            @if (HasActiveCourseFilters)
+            {
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearCourseFilters">
+                    Clear Filters
+                </button>
+            }
+        </div>
+
+    </div>
+
+    @if (filteredCourses.Count == 0)
+    {
+        <div class="alert alert-info">
+            No courses match the selected filters.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (Course course in FilteredCourses)
+            {
+                var eligibility = EnrollmentService
+                    .CheckEligibility(student, course);
+
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="mb-1">@course.CourseNumber</h5>
+                                    <div class="text-muted">
+                                        @course.CourseName
+                                    </div>
+                                </div>
+
+                                <span class="badge text-bg-primary">
+                                    @course.Credits credits
+                                </span>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="mb-1">
+                                    <strong>Credits:</strong>
+                                    @course.Credits
+                                </div>
+
+                                <div class="mb-1">
+                                    <strong>Instructor:</strong>
+                                    @course.Instructor
+                                </div>
+
+                                <div>
+                                    <strong>Prerequisite:</strong>
+
+                                    @if (string.IsNullOrWhiteSpace(
+                                        course.PrerequisiteCourseNumber))
+                                    {
+                                        <span class="text-success">None</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@course.PrerequisiteCourseNumber</span>
+                                    }
                                 </div>
                             </div>
 
-                            <span class="badge text-bg-primary">
-                                @course.Credits credits
-                            </span>
-                        </div>
+                            @if (!string.IsNullOrWhiteSpace(
+                                course.PrerequisiteCourseNumber))
+                            {
+                                <div class="mt-1">
+                                    <strong>Prerequisite:</strong>
+                                    @course.PrerequisiteCourseNumber
+                                </div>
+                            }
 
-                        <div class="mt-3">
-                            <div class="mb-1">
-                                <strong>Credits:</strong>
-                                @course.Credits
-                            </div>
-
-                            <div class="mb-1">
-                                <strong>Instructor:</strong>
-                                @course.Instructor
-                            </div>
-
-                            <div>
-                                <strong>Prerequisite:</strong>
-
-                                @if (string.IsNullOrWhiteSpace(
-                                    course.PrerequisiteCourseNumber))
+                            <div class="mt-3">
+                                @if (eligibility.IsEligible)
                                 {
-                                    <span class="text-success">None</span>
+                                    <div class="text-success mb-1">
+                                        ✓ Eligible
+                                    </div>
+
+                                    <div class="small text-muted mb-2">
+                                        @TotalCreditLoad → @(TotalCreditLoad + course.Credits)
+                                        credits after assignment
+                                    </div>
+
+                                    <button class="btn btn-primary" @onclick="() => AssignCourseAsync(course.Id)">
+                                        Assign Course
+                                    </button>
                                 }
                                 else
                                 {
-                                    <span>@course.PrerequisiteCourseNumber</span>
+                                    <div class="text-danger">
+                                        ✕ @eligibility.Reason
+                                    </div>
                                 }
                             </div>
+
                         </div>
-
-                        @if (!string.IsNullOrWhiteSpace(
-                            course.PrerequisiteCourseNumber))
-                        {
-                            <div class="mt-1">
-                                <strong>Prerequisite:</strong>
-                                @course.PrerequisiteCourseNumber
-                            </div>
-                        }
-
-                        <div class="mt-3">
-                            @if (eligibility.IsEligible)
-                            {
-                                <div class="text-success mb-1">
-                                    ✓ Eligible
-                                </div>
-
-                                <div class="small text-muted mb-2">
-                                    @TotalCreditLoad → @(TotalCreditLoad + course.Credits)
-                                    credits after assignment
-                                </div>
-
-                                <button class="btn btn-primary" @onclick="() => AssignCourseAsync(course.Id)">
-                                    Assign Course
-                                </button>
-                            }
-                            else
-                            {
-                                <div class="text-danger">
-                                    ✕ @eligibility.Reason
-                                </div>
-                            }
-                        </div>
-
                     </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
 }
 
 @code {
@@ -246,6 +313,9 @@ Remove
     private bool loading = true;
     private string? successMessage;
     private string? errorMessage;
+    private string searchTerm = string.Empty;
+    private string selectedDepartment = string.Empty;
+    private string eligibilityFilter = "all";
 
     private int AssignedCredits =>
         student?.Enrollments.Sum(
@@ -260,6 +330,72 @@ Remove
             : Math.Max(
                 0,
                 student.MaxCreditsAllowed - TotalCreditLoad);
+
+    private bool HasActiveCourseFilters =>
+    !string.IsNullOrWhiteSpace(searchTerm) ||
+    !string.IsNullOrWhiteSpace(selectedDepartment) ||
+    eligibilityFilter != "all";
+
+    private void ClearCourseFilters()
+    {
+        searchTerm = string.Empty;
+        selectedDepartment = string.Empty;
+        eligibilityFilter = "all";
+    }
+
+    private IEnumerable<string> Departments =>
+    courses
+        .Select(course => course.Department)
+        .Distinct()
+        .OrderBy(department => department);
+
+    private IEnumerable<Course> FilteredCourses
+    {
+        get
+        {
+            if (student is null)
+            {
+                return Enumerable.Empty<Course>();
+            }
+
+            return courses.Where(course =>
+            {
+                var matchesSearch =
+                    string.IsNullOrWhiteSpace(searchTerm) ||
+                    course.CourseNumber.Contains(
+                        searchTerm,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    course.CourseName.Contains(
+                        searchTerm,
+                        StringComparison.OrdinalIgnoreCase);
+
+                var matchesDepartment =
+                    string.IsNullOrWhiteSpace(selectedDepartment) ||
+                    course.Department == selectedDepartment;
+
+                var eligibility =
+                    EnrollmentService.CheckEligibility(student, course);
+
+                var matchesEligibility = eligibilityFilter switch
+                {
+                    "eligible" => eligibility.IsEligible,
+                    "ineligible" => !eligibility.IsEligible,
+                    _ => true
+                };
+
+                return matchesSearch &&
+                       matchesDepartment &&
+                       matchesEligibility;
+            });
+        }
+    }
+
+    private string GetEligibilityButtonClass(string filter)
+    {
+        return eligibilityFilter == filter
+            ? "btn btn-primary"
+            : "btn btn-outline-primary";
+    }
 
     protected override async Task OnInitializedAsync()
     {
