@@ -115,21 +115,21 @@ public class EnrollmentService
     public async Task<bool> RemoveCourseAsync(
     int studentId,
     int courseId)
-{
-    var enrollment = await _dbContext.Enrollments
-        .FirstOrDefaultAsync(enrollment =>
-            enrollment.StudentId == studentId &&
-            enrollment.CourseId == courseId);
-
-    if (enrollment is null)
     {
-        return false;
+        var enrollment = await _dbContext.Enrollments
+            .FirstOrDefaultAsync(enrollment =>
+                enrollment.StudentId == studentId &&
+                enrollment.CourseId == courseId);
+
+        if (enrollment is null)
+        {
+            return false;
+        }
+
+        _dbContext.Enrollments.Remove(enrollment);
+
+        await _dbContext.SaveChangesAsync();
+
+        return true;
     }
-
-    _dbContext.Enrollments.Remove(enrollment);
-
-    await _dbContext.SaveChangesAsync();
-
-    return true;
-}
 }

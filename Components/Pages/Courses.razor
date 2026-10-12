@@ -15,10 +15,7 @@
 <div class="row g-3 mb-4">
     <div class="col-12 col-md-4">
         <label class="form-label">Search</label>
-        <input type="text"
-               class="form-control"
-               placeholder="Course number or name..."
-               @bind="searchTerm"
+        <input type="text" class="form-control" placeholder="Course number or name..." @bind="searchTerm"
                @bind:event="oninput" />
     </div>
 
@@ -60,8 +57,7 @@ else
 
         @if (HasActiveFilters)
         {
-            <button class="btn btn-sm btn-outline-secondary"
-                    @onclick="ClearFilters">
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearFilters">
                 Clear Filters
             </button>
         }
@@ -93,8 +89,8 @@ else
                                     </h6>
                                 </div>
 
-                                <span class="badge text-bg-primary">
-                                    @course.Credits credits
+                                <span class="badge bg-primary text-white">
+                                    @(course.Credits) credits
                                 </span>
                             </div>
 
