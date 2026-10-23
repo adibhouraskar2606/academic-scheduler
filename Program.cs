@@ -12,6 +12,8 @@ builder.Services.AddDbContext<AcademicSchedulerDbContext>(options =>
 builder.Services.AddScoped<StudentService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<EnrollmentService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<EnrollmentReportService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

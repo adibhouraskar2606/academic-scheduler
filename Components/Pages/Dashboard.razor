@@ -1,0 +1,243 @@
+
+@page "/dashboard"
+@rendermode InteractiveServer
+@using System.Text
+@inject EnrollmentReportService ReportService
+@inject IJSRuntime JS
+@using AcademicScheduler.Models
+@using AcademicScheduler.Services
+@inject DashboardService DashboardService
+
+<PageTitle>Administrative Dashboard</PageTitle>
+
+<h1>Administrative Dashboard</h1>
+<p class="text-muted">
+    Overview of student enrollment and academic scheduling.
+</p>
+
+@if (stats is null)
+{
+    <p>Loading dashboard...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Students</h6>
+                    <h2>@stats.TotalStudents</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Available Courses</h6>
+                    <h2>@stats.TotalCourses</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Active Enrollments</h6>
+                    <h2>@stats.TotalEnrollments</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Avg. Assigned Credits</h6>
+                    <h2>@stats.AverageCredits.ToString("F1")</h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Enrollments by Department</h5>
+        </div>
+
+        <div class="card-body">
+
+            @if (stats.DepartmentEnrollments.Count == 0)
+            {
+                <p class="text-muted">
+                    No active enrollments yet.
+                    Assign courses to students to see department statistics.
+                </p>
+            }
+            else
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Enrollment Count</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var department in stats.DepartmentEnrollments)
+                        {
+                            <tr>
+                                <td>@department.Department</td>
+                                <td>@department.EnrollmentCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="card shadow-sm mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Student Enrollment Report</h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="row mb-3">
+            <div class="col-md-5">
+                <label class="form-label">Filter by Department</label>
+
+                <select class="form-select"
+                        @bind="selectedDepartment"
+                        @bind:after="LoadReportAsync">
+
+                    <option value="">All Departments</option>
+
+                    @foreach (var department in departments)
+                    {
+                        <option value="@department">
+                            @department
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="col-md-7 d-flex align-items-end justify-content-end">
+                <button class="btn btn-success"
+                        @onclick="ExportCsvAsync">
+                    Export CSV
+                </button>
+            </div>
+        </div>
+
+        <p class="text-muted">
+            Showing @reportRows.Count enrollment records
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Year</th>
+                        <th>Course Number</th>
+                        <th>Course</th>
+                        <th>Department</th>
+                        <th>Credits</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var row in reportRows)
+                    {
+                        <tr>
+                            <td>@row.StudentName</td>
+                            <td>@row.YearLevel</td>
+                            <td>@row.CourseNumber</td>
+                            <td>@row.CourseName</td>
+                            <td>@row.Department</td>
+                            <td>@row.Credits</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+            }
+
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardStats? stats;
+
+    private List<EnrollmentReportRow> reportRows = new();
+    private List<string> departments = new();
+
+    private string selectedDepartment = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        stats = await DashboardService.GetStatsAsync();
+
+        departments = await ReportService.GetDepartmentsAsync();
+
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        reportRows = await ReportService.GetReportAsync(
+            selectedDepartment);
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        // Fetch again so the exported report reflects current database data.
+        var rows = await ReportService.GetReportAsync(selectedDepartment);
+
+        var csv = new StringBuilder();
+
+        csv.AppendLine(
+            "Student,Year,Course Number,Course,Department,Credits");
+
+        foreach (var row in rows)
+        {
+            csv.AppendLine(string.Join(",",
+                EscapeCsv(row.StudentName),
+                row.YearLevel.ToString(),
+                EscapeCsv(row.CourseNumber),
+                EscapeCsv(row.CourseName),
+                EscapeCsv(row.Department),
+                row.Credits.ToString()
+            ));
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        var base64 = Convert.ToBase64String(bytes);
+
+        await JS.InvokeVoidAsync(
+            "downloadFile",
+            $"enrollment-report-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv",
+            "text/csv;charset=utf-8",
+            base64);
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        // Quote fields that contain CSV delimiters or line breaks.
+        // Prefix spreadsheet formula-like values to reduce CSV injection risk.
+        var safeValue = value;
+
+        if (!string.IsNullOrEmpty(safeValue) &&
+            "=+-@\t\r".Contains(safeValue[0]))
+        {
+            safeValue = "'" + safeValue;
+        }
+
+        return "\"" + safeValue.Replace("\"", "\"\"") + "\"";
+    }
+}
