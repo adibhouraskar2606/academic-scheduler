@@ -5,6 +5,10 @@
 @inject StudentService StudentService
 @inject CourseService CourseService
 @inject EnrollmentService EnrollmentService
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize]
 
 <PageTitle>Student Schedule</PageTitle>
 
@@ -118,10 +122,14 @@ else if (student is not null)
                                     </td>
 
                                     <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveCourseAsync(
-                                                    enrollment.CourseId)">
-Remove
-</button>
+                                        <AuthorizeView Policy="CanManageEnrollments">
+                                            <Authorized>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => RemoveCourseAsync(enrollment.CourseId)">
+                                                    Remove
+                                                </button>
+                                            </Authorized>
+                                        </AuthorizeView>
                                     </td>
                                 </tr>
                             }
@@ -275,9 +283,13 @@ Remove
                                         credits after assignment
                                     </div>
 
-                                    <button class="btn btn-primary" @onclick="() => AssignCourseAsync(course.Id)">
-                                        Assign Course
-                                    </button>
+                                    <AuthorizeView Policy="CanManageEnrollments">
+                                        <Authorized>
+                                            <button class="btn btn-primary" @onclick="() => AssignCourseAsync(course.Id)">
+                                                Assign Course
+                                            </button>
+                                        </Authorized>
+                                    </AuthorizeView>
                                 }
                                 else
                                 {

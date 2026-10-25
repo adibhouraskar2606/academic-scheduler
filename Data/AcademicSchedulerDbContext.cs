@@ -1,9 +1,11 @@
 using AcademicScheduler.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace AcademicScheduler.Data;
 
-public class AcademicSchedulerDbContext : DbContext
+public class AcademicSchedulerDbContext : IdentityDbContext<IdentityUser>
 {
     public AcademicSchedulerDbContext(
         DbContextOptions<AcademicSchedulerDbContext> options)

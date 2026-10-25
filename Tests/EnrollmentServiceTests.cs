@@ -3,7 +3,6 @@ using AcademicScheduler.Models;
 using AcademicScheduler.Services;
 using AcademicScheduler.Tests.Helpers;
 using Xunit;
-
 namespace AcademicScheduler.Tests;
 
 public class EnrollmentServiceTests
@@ -60,7 +59,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act: ask our real enrollment service to check eligibility.
-        var enrollmentService = new EnrollmentService(dbContext);
+        var enrollmentService = EnrollmentServiceFactory.Create(dbContext);
 
         var result = enrollmentService.CheckEligibility(
             student,
@@ -122,7 +121,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var service = new EnrollmentService(dbContext);
+        var service = EnrollmentServiceFactory.Create(dbContext);
         var result = service.CheckEligibility(student, advancedCourse);
 
         // Assert
@@ -168,7 +167,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var service = new EnrollmentService(dbContext);
+        var service = EnrollmentServiceFactory.Create(dbContext);
         var result = service.CheckEligibility(student, course);
 
         // Assert
@@ -214,7 +213,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var service = new EnrollmentService(dbContext);
+        var service = EnrollmentServiceFactory.Create(dbContext);
         var result = service.CheckEligibility(student, course);
 
         // Assert
@@ -261,7 +260,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var service = new EnrollmentService(dbContext);
+        var service = EnrollmentServiceFactory.Create(dbContext);
         var result = service.CheckEligibility(student, course);
 
         // Assert
@@ -328,7 +327,7 @@ public class EnrollmentServiceTests
         await dbContext.SaveChangesAsync();
 
         // Act
-        var service = new EnrollmentService(dbContext);
+        var service = EnrollmentServiceFactory.Create(dbContext);
         var result = service.CheckEligibility(student, requestedCourse);
 
         // Assert

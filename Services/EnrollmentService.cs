@@ -1,16 +1,24 @@
 using AcademicScheduler.Data;
 using AcademicScheduler.Models;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 namespace AcademicScheduler.Services;
 
 public class EnrollmentService
 {
     private readonly AcademicSchedulerDbContext _dbContext;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly AuthenticationStateProvider _authenticationStateProvider;
 
-    public EnrollmentService(AcademicSchedulerDbContext dbContext)
+    public EnrollmentService(
+    AcademicSchedulerDbContext dbContext,
+    IAuthorizationService authorizationService,
+    AuthenticationStateProvider authenticationStateProvider)
     {
         _dbContext = dbContext;
+        _authorizationService = authorizationService;
+        _authenticationStateProvider = authenticationStateProvider;
     }
 
     public EligibilityResult CheckEligibility(
@@ -70,6 +78,8 @@ public class EnrollmentService
     int studentId,
     int courseId)
     {
+        await EnsureCanManageEnrollmentsAsync();
+
         var student = await _dbContext.Students
             .Include(student => student.CompletedCourses)
                 .ThenInclude(completed => completed.Course)
@@ -116,6 +126,8 @@ public class EnrollmentService
     int studentId,
     int courseId)
     {
+        await EnsureCanManageEnrollmentsAsync();
+        
         var enrollment = await _dbContext.Enrollments
             .FirstOrDefaultAsync(enrollment =>
                 enrollment.StudentId == studentId &&
@@ -131,5 +143,21 @@ public class EnrollmentService
         await _dbContext.SaveChangesAsync();
 
         return true;
+    }
+    private async Task EnsureCanManageEnrollmentsAsync()
+    {
+        var authenticationState =
+            await _authenticationStateProvider.GetAuthenticationStateAsync();
+
+        var authorizationResult =
+            await _authorizationService.AuthorizeAsync(
+                authenticationState.User,
+                "CanManageEnrollments");
+
+        if (!authorizationResult.Succeeded)
+        {
+            throw new UnauthorizedAccessException(
+                "Only administrators can manage enrollments.");
+        }
     }
 }

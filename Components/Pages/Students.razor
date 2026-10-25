@@ -3,6 +3,8 @@
 @using AcademicScheduler.Models
 @using AcademicScheduler.Services
 @inject StudentService StudentService
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 
 <PageTitle>Students</PageTitle>
 
@@ -42,7 +44,7 @@ else
         <div class="d-flex justify-content-between align-items-center mb-3">
         <strong>@filteredStudents.Count Student(s)</strong>
         </div>
-        
+
         <div class="row g-4">
             @foreach (var student in filteredStudents)
             {
